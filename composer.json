@@ -1,0 +1,30 @@
+{
+  "name": "mightymocker/mightymocker",
+  "type": "library",
+  "description": "Instance mocker supporting new keyword",
+  "keywords": ["mock","mocking","mocker","test","testing"],
+  "homepage": "https://github.com/patiek/mightymocker",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Patrick Brown",
+      "email": "patiek@gmail.com",
+      "homepage": "http://browniethoughts.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=5.6.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "MightyMocker\\": "src/MightyMocker"
+    }
+  },
+  "scripts": {
+    "test": "phpunit"
+  }
+}
