@@ -34,9 +34,13 @@ class Mock
 
         if (!array_key_exists($className, self::$_classNamesToMocks)) {
             $realClassCode = $mock->getClassRewriteCode($className, $mockName, $filePath);
-            eval($realClassCode);
+            if (false === eval($realClassCode)) {
+                throw new LogicException('Failed to mock className ' . $className . ' because the file contains a parse error: ' . $realClassCode);
+            }
             $mockClassCode = $mock->getMockClassCode($className, $mockName);
-            eval($mockClassCode);
+            if (false === eval($mockClassCode)) {
+                throw new LogicException('Failed to mock className ' . $className . ' because the mock contains a parse error: ' . $mockClassCode);
+            }
         }
 
         self::$_classNamesToMocks[$className] = $mock;
@@ -141,6 +145,11 @@ class Mock
         $mockableMethods = $ref->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED);
         $methodContents  = [];
         foreach ($mockableMethods as $method) {
+            if ($method->isFinal()) {
+                // skip this method because it is finalized and we don't support that yet
+                continue;
+            }
+
             $methodName = $method->getName();
 
             $body = sprintf(
@@ -154,8 +163,26 @@ class Mock
             // build list of parameters
             $parameters = [];
             foreach ($method->getParameters() as $param) {
+                $defaultValue = null;
+                if ($param->isDefaultValueAvailable()) {
+                    $defaultValue = $param->getDefaultValue();
+                }
+
                 // Example: 'Parameter #1 [ <required> array $update ]'
-                $parameters[] = preg_replace('#^.*?\[ <(?:required|optional)> (.+)\]$#', '\\1', (string)$param);
+                // Example: 'Parameter #1 or NULL'
+                $parameter = preg_replace([
+                    '#^.*?\[ <(?:required|optional)> (.+)\]$#',
+                    '#^([^\s]+) or NULL (.+)$#',
+                ], [
+                    '\\1',
+                    '\\1 \\2',
+                ], (string)$param);
+
+                if (!is_scalar($defaultValue)) {
+                    $parameter = preg_replace('#^(.*? = )(.+?)$#', '\\1' . var_export($defaultValue, true), $parameter);
+                }
+
+                $parameters[] = $parameter;
             }
 
             $parts = [];
